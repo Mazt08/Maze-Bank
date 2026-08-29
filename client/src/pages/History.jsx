@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { accountAPI } from '../services/api';
 
 export default function History() {
@@ -10,17 +10,7 @@ export default function History() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadAccounts();
-  }, []);
-
-  useEffect(() => {
-    if (selectedAccountId && searchTerm === '') {
-      loadTransactionHistory();
-    }
-  }, [selectedAccountId]);
-
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await accountAPI.getAccounts();
@@ -34,9 +24,9 @@ export default function History() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadTransactionHistory = async () => {
+  const loadTransactionHistory = useCallback(async () => {
     if (!selectedAccountId) return;
 
     try {
@@ -50,7 +40,17 @@ export default function History() {
     } finally {
       setSearching(false);
     }
-  };
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
+
+  useEffect(() => {
+    if (selectedAccountId && searchTerm === '') {
+      loadTransactionHistory();
+    }
+  }, [selectedAccountId, searchTerm, loadTransactionHistory]);
 
   const handleSearch = async (e) => {
     e.preventDefault();

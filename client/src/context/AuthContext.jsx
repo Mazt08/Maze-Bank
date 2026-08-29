@@ -6,7 +6,7 @@ export const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('session_token'));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!localStorage.getItem('session_token'));
   const [error, setError] = useState(null);
 
   // Check if user is already authenticated
@@ -16,12 +16,16 @@ export function AuthProvider({ children }) {
         .getCurrentUser()
         .then((res) => {
           setUser(res.data.user);
+          setLoading(false);
         })
         .catch((err) => {
           console.error('Failed to fetch user:', err);
           localStorage.removeItem('session_token');
           setToken(null);
+          setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
   }, [token]);
 
