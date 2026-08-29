@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Build outputs
+dist/
+build/
+*.tgz
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Sensitive files
+.htpasswd
+*.pem
+*.key
+*.crt
+*.cert
+
+# Database backups
+*.sql.bak
+*.sql.backup
+database_dump.sql
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+.cache/
+temp/

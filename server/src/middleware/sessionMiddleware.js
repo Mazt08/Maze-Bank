@@ -1,0 +1,123 @@
+import crypto from 'crypto';
+import pool from '../db/pool.js';
+
+/**
+ * Session Middleware - INTENTIONALLY VULNERABLE FOR EDUCATIONAL PURPOSES
+ * 
+ * VULNERABILITIES:
+ * 1. Weak token generation (predictable hash)
+ * 2. No cryptographic randomness
+ * 3. Session tokens not bound to IP or User-Agent
+ * 4. No automatic expiry or rotation
+ * 5. Tokens transmitted in non-HttpOnly cookies
+ */
+
+// VULN: Predictable session token generation based on username and timestamp
+// An attacker can brute-force tokens by trying hashes of (username + nearby_timestamp)
+function generateSessionToken(username) {
+  const timestamp = Date.now();
+  // VULN: Using deterministic hash of predictable data
+  return crypto.createHash('sha256')
+    .update(`${username}:${timestamp}`)
+    .digest('hex');
+}
+
+/* SECURE: Cryptographically random token generation
+function generateSessionToken(username) {
+  return crypto.randomBytes(32).toString('hex');
+}
+*/
+
+// VULN: Session validation doesn't check IP, User-Agent, or expiry binding
+async function validateSession(token) {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM sessions WHERE session_token = $1',
+      [token]
+    );
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const session = result.rows[0];
+    
+    // VULN: No validation of:
+    // - IP address (can be reused from different locations)
+    // - User-Agent (can be reused from different browsers)
+    // - Expiry time (tokens persist indefinitely)
+    // - Rotation (same token used for all requests)
+    
+    return session;
+    
+    /* SECURE: Session binding and validation
+    const session = result.rows[0];
+    
+    // Check if session has expired
+    if (new Date(session.expires_at) < new Date()) {
+      await pool.query('DELETE FROM sessions WHERE id = $1', [session.id]);
+      return null;
+    }
+    
+    // Check if session is bound to the same IP and User-Agent
+    if (session.bound_ip !== ipAddress || session.bound_user_agent !== userAgent) {
+      return null;
+    }
+    
+    return session;
+    */
+  } catch (err) {
+    console.error('Session validation error:', err);
+    return null;
+  }
+}
+
+// Create a new session for a user after successful authentication
+async function createSession(userId, username) {
+  try {
+    const token = generateSessionToken(username);
+    
+    const result = await pool.query(
+      'INSERT INTO sessions (user_id, session_token, created_at, expires_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL \'24 hours\') RETURNING *',
+      [userId, token]
+    );
+    
+    return result.rows[0];
+  } catch (err) {
+    console.error('Session creation error:', err);
+    throw err;
+  }
+}
+
+// Middleware to validate session on protected routes
+export function sessionMiddleware(req, res, next) {
+  // VULN: Token can come from:
+  // 1. Non-HttpOnly cookie (JavaScript-accessible)
+  // 2. Query parameter (appears in logs and browser history)
+  // 3. Authorization header (transmitted unencrypted over HTTP)
+  
+  const token = 
+    req.cookies?.session_token ||
+    req.query?.session_token ||
+    req.headers?.authorization?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ error: 'No session token provided' });
+  }
+
+  validateSession(token)
+    .then((session) => {
+      if (!session) {
+        return res.status(401).json({ error: 'Invalid or expired session' });
+      }
+      req.session = session;
+      req.userId = session.user_id;
+      next();
+    })
+    .catch((err) => {
+      console.error('Middleware error:', err);
+      res.status(500).json({ error: 'Session validation failed' });
+    });
+}
+
+export { generateSessionToken, validateSession, createSession };

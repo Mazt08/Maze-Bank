@@ -1,0 +1,21 @@
+# robots.txt - Prevent search engine indexing
+# This application is educational/vulnerable by design
+# It should not be indexed or discovered by search engines
+
+User-agent: *
+Disallow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Specifically block crawlers
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
