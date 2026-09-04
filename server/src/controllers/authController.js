@@ -25,17 +25,21 @@ export async function registerUser(req, res) {
     const passwordHash = hashPassword(password);
 
     // SECURE: Using parameterized query for registration
-    const result = await pool.query(
-      'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id, username, role',
+    const [result] = await pool.query(
+      'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
       [username, passwordHash, 'user']
     );
 
     return res.status(201).json({
       message: 'User registered successfully',
-      user: result.rows[0],
+      user: {
+        id: result.insertId,
+        username,
+        role: 'user'
+      },
     });
   } catch (err) {
-    if (err.code === '23505') {
+    if (err.code === 'ER_DUP_ENTRY') {
       // Unique constraint violation
       return res.status(409).json({ error: 'Username already exists' });
     }
@@ -76,13 +80,13 @@ export async function loginUser(req, res) {
     
     console.log('[DEBUG - VULN] Login Query:', query); // Log for educational inspection
 
-    const result = await pool.query(query);
+    const [rows] = await pool.query(query);
 
-    if (result.rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    const user = result.rows[0];
+    const user = rows[0];
 
     // Create session after successful login
     const session = await createSession(user.id, user.username);
@@ -109,14 +113,14 @@ export async function loginUser(req, res) {
     /* ========================================================================
     // SECURE: Parameterized query + secure session handling
     // ========================================================================
-    const query = 'SELECT * FROM users WHERE username = $1 AND password_hash = $2';
-    const result = await pool.query(query, [username, passwordHash]);
+    const query = 'SELECT * FROM users WHERE username = ? AND password_hash = ?';
+    const [rows] = await pool.query(query, [username, passwordHash]);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    const user = result.rows[0];
+    const user = rows[0];
     const session = await createSession(user.id, user.username);
 
     // SECURE: HttpOnly, Secure cookie with no body token
@@ -148,7 +152,7 @@ export async function logoutUser(req, res) {
     const token = req.cookies?.session_token || req.query?.session_token;
 
     if (token) {
-      await pool.query('DELETE FROM sessions WHERE session_token = $1', [token]);
+      await pool.query('DELETE FROM sessions WHERE session_token = ?', [token]);
     }
 
     res.clearCookie('session_token');

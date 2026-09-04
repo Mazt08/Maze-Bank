@@ -1,0 +1,13 @@
+AuthType Basic
+AuthName "Maze Bank - Authorized Access Only"
+AuthUserFile "/home/youruser/.htpasswd"
+Require valid-user
+
+Header always set X-Robots-Tag "noindex, nofollow"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-Content-Type-Options "nosniff"
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [QSA,L]

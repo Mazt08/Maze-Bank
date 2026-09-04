@@ -12,13 +12,13 @@ export async function getAccountInfo(req, res) {
     const userId = req.userId;
 
     // SECURE: Parameterized query for account info
-    const result = await pool.query(
-      'SELECT id, user_id, account_number, balance, account_type, created_at FROM accounts WHERE user_id = $1',
+    const [rows] = await pool.query(
+      'SELECT id, user_id, account_number, balance, account_type, created_at FROM accounts WHERE user_id = ?',
       [userId]
     );
 
     return res.json({
-      accounts: result.rows,
+      accounts: rows,
     });
   } catch (err) {
     console.error('Get account error:', err);
@@ -32,17 +32,17 @@ export async function getAccountBalance(req, res) {
     const { accountId } = req.params;
 
     // SECURE: Parameterized query to validate ownership
-    const result = await pool.query(
-      'SELECT id, user_id, account_number, balance, account_type FROM accounts WHERE id = $1 AND user_id = $2',
+    const [rows] = await pool.query(
+      'SELECT id, user_id, account_number, balance, account_type FROM accounts WHERE id = ? AND user_id = ?',
       [accountId, userId]
     );
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({ error: 'Account not found' });
     }
 
     return res.json({
-      account: result.rows[0],
+      account: rows[0],
     });
   } catch (err) {
     console.error('Get balance error:', err);
@@ -57,12 +57,12 @@ export async function searchTransactions(req, res) {
     const { accountId } = req.params;
 
     // First verify the account belongs to the user (this uses secure parameterized query)
-    const accountCheck = await pool.query(
-      'SELECT id FROM accounts WHERE id = $1 AND user_id = $2',
+    const [accountCheckRows] = await pool.query(
+      'SELECT id FROM accounts WHERE id = ? AND user_id = ?',
       [accountId, userId]
     );
 
-    if (accountCheck.rows.length === 0) {
+    if (accountCheckRows.length === 0) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -94,20 +94,20 @@ export async function searchTransactions(req, res) {
     
     console.log('[DEBUG - VULN] Search Query:', query); // Log for educational inspection
 
-    const result = await pool.query(query);
+    const [rows] = await pool.query(query);
 
     return res.json({
-      transactions: result.rows,
+      transactions: rows,
     });
 
     /* ========================================================================
     // SECURE: Parameterized query with proper escaping
     // ========================================================================
-    const query = 'SELECT * FROM transactions WHERE from_account = $1 AND description ILIKE $2';
-    const result = await pool.query(query, [accountId, `%${searchTerm}%`]);
+    const query = 'SELECT * FROM transactions WHERE from_account = ? AND description LIKE ?';
+    const [rows] = await pool.query(query, [accountId, `%${searchTerm}%`]);
 
     return res.json({
-      transactions: result.rows,
+      transactions: rows,
     });
     ======================================================================== */
   } catch (err) {
@@ -122,23 +122,23 @@ export async function getTransactionHistory(req, res) {
     const { accountId } = req.params;
 
     // Verify account ownership
-    const accountCheck = await pool.query(
-      'SELECT id FROM accounts WHERE id = $1 AND user_id = $2',
+    const [accountCheckRows] = await pool.query(
+      'SELECT id FROM accounts WHERE id = ? AND user_id = ?',
       [accountId, userId]
     );
 
-    if (accountCheck.rows.length === 0) {
+    if (accountCheckRows.length === 0) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
     // SECURE: Parameterized query for transaction history
-    const result = await pool.query(
-      'SELECT id, from_account, to_account, amount, description, transaction_type, timestamp FROM transactions WHERE from_account = $1 OR to_account = $1 ORDER BY timestamp DESC LIMIT 50',
-      [accountId]
+    const [rows] = await pool.query(
+      'SELECT id, from_account, to_account, amount, description, transaction_type, timestamp FROM transactions WHERE from_account = ? OR to_account = ? ORDER BY timestamp DESC LIMIT 50',
+      [accountId, accountId]
     );
 
     return res.json({
-      transactions: result.rows,
+      transactions: rows,
     });
   } catch (err) {
     console.error('History error:', err);

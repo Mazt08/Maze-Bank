@@ -31,16 +31,16 @@ function generateSessionToken(username) {
 // VULN: Session validation doesn't check IP, User-Agent, or expiry binding
 async function validateSession(token) {
   try {
-    const result = await pool.query(
-      'SELECT * FROM sessions WHERE session_token = $1',
+    const [rows] = await pool.query(
+      'SELECT * FROM sessions WHERE session_token = ?',
       [token]
     );
     
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return null;
     }
 
-    const session = result.rows[0];
+    const session = rows[0];
     
     // VULN: No validation of:
     // - IP address (can be reused from different locations)
@@ -51,11 +51,11 @@ async function validateSession(token) {
     return session;
     
     /* SECURE: Session binding and validation
-    const session = result.rows[0];
+    const session = rows[0];
     
     // Check if session has expired
     if (new Date(session.expires_at) < new Date()) {
-      await pool.query('DELETE FROM sessions WHERE id = $1', [session.id]);
+      await pool.query('DELETE FROM sessions WHERE id = ?', [session.id]);
       return null;
     }
     
@@ -77,12 +77,18 @@ async function createSession(userId, username) {
   try {
     const token = generateSessionToken(username);
     
-    const result = await pool.query(
-      'INSERT INTO sessions (user_id, session_token, created_at, expires_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL \'24 hours\') RETURNING *',
+    const [result] = await pool.query(
+      'INSERT INTO sessions (user_id, session_token, created_at, expires_at) VALUES (?, ?, CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 24 HOUR))',
       [userId, token]
     );
     
-    return result.rows[0];
+    // Fetch the created session
+    const [sessionRows] = await pool.query(
+      'SELECT * FROM sessions WHERE id = ?',
+      [result.insertId]
+    );
+    
+    return sessionRows[0];
   } catch (err) {
     console.error('Session creation error:', err);
     throw err;

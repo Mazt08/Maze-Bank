@@ -19,70 +19,77 @@ export async function transferFunds(req, res) {
     return res.status(400).json({ error: 'Amount must be positive' });
   }
 
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
 
   try {
-    await client.query('BEGIN');
+    await connection.beginTransaction();
 
     // Verify from account belongs to user
-    const fromCheck = await client.query(
-      'SELECT id, balance FROM accounts WHERE id = $1 AND user_id = $2 FOR UPDATE',
+    const [fromCheckRows] = await connection.query(
+      'SELECT id, balance FROM accounts WHERE id = ? AND user_id = ?',
       [fromAccountId, userId]
     );
 
-    if (fromCheck.rows.length === 0) {
-      await client.query('ROLLBACK');
+    if (fromCheckRows.length === 0) {
+      await connection.rollback();
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const fromAccount = fromCheck.rows[0];
+    const fromAccount = fromCheckRows[0];
 
     if (fromAccount.balance < amount) {
-      await client.query('ROLLBACK');
+      await connection.rollback();
       return res.status(400).json({ error: 'Insufficient funds' });
     }
 
     // Verify to account exists
-    const toCheck = await client.query(
-      'SELECT id FROM accounts WHERE id = $1 FOR UPDATE',
+    const [toCheckRows] = await connection.query(
+      'SELECT id FROM accounts WHERE id = ?',
       [toAccountId]
     );
 
-    if (toCheck.rows.length === 0) {
-      await client.query('ROLLBACK');
+    if (toCheckRows.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: 'Target account not found' });
     }
 
     // Debit from account
-    await client.query(
-      'UPDATE accounts SET balance = balance - $1 WHERE id = $2',
+    await connection.query(
+      'UPDATE accounts SET balance = balance - ? WHERE id = ?',
       [amount, fromAccountId]
     );
 
     // Credit to account
-    await client.query(
-      'UPDATE accounts SET balance = balance + $1 WHERE id = $2',
+    await connection.query(
+      'UPDATE accounts SET balance = balance + ? WHERE id = ?',
       [amount, toAccountId]
     );
 
     // Record transaction
-    const transaction = await client.query(
-      'INSERT INTO transactions (from_account, to_account, amount, description, transaction_type) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+    const [insertResult] = await connection.query(
+      'INSERT INTO transactions (from_account, to_account, amount, description, transaction_type) VALUES (?, ?, ?, ?, ?)',
       [fromAccountId, toAccountId, amount, description || 'Transfer', 'transfer']
     );
 
-    await client.query('COMMIT');
+    await connection.commit();
 
     return res.json({
       message: 'Transfer successful',
-      transaction: transaction.rows[0],
+      transaction: {
+        id: insertResult.insertId,
+        from_account: fromAccountId,
+        to_account: toAccountId,
+        amount,
+        description: description || 'Transfer',
+        transaction_type: 'transfer'
+      },
     });
   } catch (err) {
-    await client.query('ROLLBACK');
+    await connection.rollback();
     console.error('Transfer error:', err);
     return res.status(500).json({ error: 'Transfer failed' });
   } finally {
-    client.release();
+    connection.release();
   }
 }
 
@@ -91,20 +98,20 @@ export async function getTransferOptions(req, res) {
     const userId = req.userId;
 
     // Get user's own accounts
-    const ownAccounts = await pool.query(
-      'SELECT id, account_number, balance FROM accounts WHERE user_id = $1',
+    const [ownAccountRows] = await pool.query(
+      'SELECT id, account_number, balance FROM accounts WHERE user_id = ?',
       [userId]
     );
 
     // Get all accounts (but not details - just id/number for recipient selection)
-    const recipientAccounts = await pool.query(
-      'SELECT id, account_number FROM accounts WHERE user_id != $1',
+    const [recipientAccountRows] = await pool.query(
+      'SELECT id, account_number FROM accounts WHERE user_id != ?',
       [userId]
     );
 
     return res.json({
-      fromAccounts: ownAccounts.rows,
-      toAccounts: recipientAccounts.rows,
+      fromAccounts: ownAccountRows,
+      toAccounts: recipientAccountRows,
     });
   } catch (err) {
     console.error('Get transfer options error:', err);

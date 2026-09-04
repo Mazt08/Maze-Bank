@@ -1,60 +1,54 @@
--- Maze Bank Database Seed Data
--- Test credentials and fake account balances for educational use only
-
--- Insert test users
--- Passwords are hashed with SHA-256 (in real world, use bcrypt)
--- alice:pass123 / bob:pass456 / charlie:pass789 / admin:admin123
-
 INSERT INTO users (username, password_hash, role) VALUES
-('alice', '937c2ab8a95e02c17ba8e6e38bb5d3525d6a06cc8de8d7c0d9f9e8d9cdc3a1f1', 'user'),
-('bob', '6f6a5ab92fd5a7c8a8c8d3d8e0e1f2f3f4f5f6f7f8f9fafbfcfdfeff00010203', 'user'),
-('charlie', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1', 'user'),
-('admin', 'b4f8a92d9f47e3e0e4e6e8ea0ece4e9edeef6f8faf9fbfdfefef0f2f4f6f8fa', 'admin');
+('alice', '9b8769a4a742959a2d0298c36fb70623f2dfacda8436237df08d8dfd5b37374c', 'user'),
+('bob', '1d4598d1949b47f7f211134b639ec32238ce73086a83c2f745713b3f12f817e5', 'user'),
+('charlie', '9dbd5c893b5b573a1aa909c8cade58df194310e411c590d9fb0d63431841fd67', 'user'),
+('admin', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin');
 
--- Insert accounts for each user
-INSERT INTO accounts (user_id, account_number, balance, account_type) VALUES
--- Alice's account
-((SELECT id FROM users WHERE username = 'alice'), '1001-2024-ALICE', 5000.00, 'checking'),
-((SELECT id FROM users WHERE username = 'alice'), '1002-2024-ALICE', 12500.00, 'savings'),
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1001-2024-ALICE', 5000.00, 'checking' FROM users WHERE username = 'alice';
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1002-2024-ALICE', 12500.00, 'savings' FROM users WHERE username = 'alice';
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1003-2024-BOB', 3000.00, 'checking' FROM users WHERE username = 'bob';
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1004-2024-BOB', 8200.50, 'savings' FROM users WHERE username = 'bob';
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1005-2024-CHARLIE', 10000.00, 'checking' FROM users WHERE username = 'charlie';
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1006-2024-CHARLIE', 25000.00, 'savings' FROM users WHERE username = 'charlie';
+INSERT INTO accounts (user_id, account_number, balance, account_type)
+SELECT id, '1000-2024-ADMIN', 1000000.00, 'checking' FROM users WHERE username = 'admin';
 
--- Bob's account
-((SELECT id FROM users WHERE username = 'bob'), '1003-2024-BOB', 3000.00, 'checking'),
-((SELECT id FROM users WHERE username = 'bob'), '1004-2024-BOB', 8200.50, 'savings'),
+INSERT INTO transactions (from_account, to_account, amount, description, transaction_type)
+SELECT a1.id, a2.id, 500.00, 'Lunch payment', 'transfer'
+FROM accounts a1 JOIN accounts a2 ON a2.account_number = '1003-2024-BOB'
+WHERE a1.account_number = '1001-2024-ALICE';
 
--- Charlie's account
-((SELECT id FROM users WHERE username = 'charlie'), '1005-2024-CHARLIE', 10000.00, 'checking'),
-((SELECT id FROM users WHERE username = 'charlie'), '1006-2024-CHARLIE', 25000.00, 'savings'),
+INSERT INTO transactions (from_account, to_account, amount, description, transaction_type)
+SELECT a1.id, a2.id, 200.00, 'Coffee repayment', 'transfer'
+FROM accounts a1 JOIN accounts a2 ON a2.account_number = '1005-2024-CHARLIE'
+WHERE a1.account_number = '1003-2024-BOB';
 
--- Admin account
-((SELECT id FROM users WHERE username = 'admin'), '1000-2024-ADMIN', 1000000.00, 'checking');
+INSERT INTO transactions (from_account, to_account, amount, description, transaction_type)
+SELECT a1.id, a2.id, 1500.00, 'Project reimbursement', 'transfer'
+FROM accounts a1 JOIN accounts a2 ON a2.account_number = '1002-2024-ALICE'
+WHERE a1.account_number = '1005-2024-CHARLIE';
 
--- Insert sample transactions
-INSERT INTO transactions (from_account, to_account, amount, description, transaction_type) VALUES
--- Alice to Bob
-((SELECT id FROM accounts WHERE account_number = '1001-2024-ALICE'), 
- (SELECT id FROM accounts WHERE account_number = '1003-2024-BOB'), 
- 500.00, 'Payment for lunch', 'transfer'),
+INSERT INTO transactions (from_account, to_account, amount, description, transaction_type)
+SELECT a1.id, a2.id, 2000.00, 'Savings transfer', 'transfer'
+FROM accounts a1 JOIN accounts a2 ON a2.account_number = '1002-2024-ALICE'
+WHERE a1.account_number = '1001-2024-ALICE';
 
--- Bob to Charlie
-((SELECT id FROM accounts WHERE account_number = '1003-2024-BOB'), 
- (SELECT id FROM accounts WHERE account_number = '1005-2024-CHARLIE'), 
- 200.00, 'Repayment for coffee', 'transfer'),
+INSERT INTO transactions (from_account, to_account, amount, description, transaction_type)
+SELECT a1.id, a2.id, 150.00, 'Birthday gift', 'transfer'
+FROM accounts a1 JOIN accounts a2 ON a2.account_number = '1003-2024-BOB'
+WHERE a1.account_number = '1001-2024-ALICE';
 
--- Charlie to Alice
-((SELECT id FROM accounts WHERE account_number = '1005-2024-CHARLIE'), 
- (SELECT id FROM accounts WHERE account_number = '1002-2024-ALICE'), 
- 1500.00, 'Group project reimbursement', 'transfer'),
+INSERT INTO transactions (from_account, to_account, amount, description, transaction_type)
+SELECT a1.id, a2.id, 300.00, 'Book purchase reimbursement', 'transfer'
+FROM accounts a1 JOIN accounts a2 ON a2.account_number = '1001-2024-ALICE'
+WHERE a1.account_number = '1005-2024-CHARLIE';
 
--- Alice to Alice (savings deposit)
-((SELECT id FROM accounts WHERE account_number = '1001-2024-ALICE'), 
- (SELECT id FROM accounts WHERE account_number = '1002-2024-ALICE'), 
- 2000.00, 'Savings transfer', 'transfer'),
-
--- Multiple transactions for testing search
-((SELECT id FROM accounts WHERE account_number = '1001-2024-ALICE'), 
- (SELECT id FROM accounts WHERE account_number = '1003-2024-BOB'), 
- 150.00, 'Birthday gift from Alice', 'transfer'),
-
-((SELECT id FROM accounts WHERE account_number = '1005-2024-CHARLIE'), 
- (SELECT id FROM accounts WHERE account_number = '1001-2024-ALICE'), 
- 300.00, 'Book purchase reimbursement', 'transfer');
+INSERT INTO sessions (user_id, session_token, expires_at)
+SELECT id, 'demo-alice-session-token', DATE_ADD(NOW(), INTERVAL 24 HOUR)
+FROM users WHERE username = 'alice';

@@ -1,6 +1,3 @@
--- Maze Bank Database Schema
--- MySQL-compatible schema for the Hostinger/PHP assignment
-
 CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
