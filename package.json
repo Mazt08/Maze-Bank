@@ -1,0 +1,23 @@
+{
+  "name": "maze-bank",
+  "version": "1.0.0",
+  "description": "Deliberately vulnerable banking application for educational cybersecurity coursework",
+  "type": "module",
+  "scripts": {
+    "server": "cd server && npm start",
+    "server:dev": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "client:build": "cd client && npm run build",
+    "seed": "cd server && npm run seed",
+    "check-db": "node check-db.js",
+    "test-login": "node test-login.js",
+    "hash-passwords": "node hash-passwords.js"
+  },
+  "keywords": [
+    "vulnerable",
+    "education",
+    "cybersecurity"
+  ],
+  "author": "Cybersecurity Course",
+  "license": "MIT"
+}
