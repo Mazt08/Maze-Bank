@@ -65,7 +65,7 @@ export default function Transfer() {
       setDescription('');
 
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        navigateTo('/dashboard');
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Transfer failed');
@@ -74,21 +74,34 @@ export default function Transfer() {
     }
   };
 
-  return (
-    <div className="page">
-      <h1>💸 Transfer Funds</h1>
+  function navigateTo(url) {
+    // Simple navigation without full page reload
+    const link = document.createElement('a');
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
+  return (
+    <div>
+      <h1 className="page-title mb-4">Transfer Funds</h1>
+
+      {error && <div className="alert alert-danger mb-3">{error}</div>}
+      {success && <div className="alert alert-success mb-3">{success}</div>}
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          <span>Loading...</span>
+        </div>
       ) : (
-        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <form onSubmit={handleSubmit} className="card">
+        <div className="card">
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>From Account</label>
+              <label className="form-label">From Account</label>
               <select
+                className="form-input form-select"
                 value={fromAccountId}
                 onChange={(e) => setFromAccountId(e.target.value)}
                 disabled={submitting}
@@ -97,15 +110,18 @@ export default function Transfer() {
                 <option value="">Select account</option>
                 {fromAccounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.account_number} - ${parseFloat(acc.balance).toFixed(2)}
+                    {acc.account_number} - ${
+                      parseFloat(acc.balance).toFixed(2)
+                    }
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label>To Account</label>
+              <label className="form-label">To Account</label>
               <select
+                className="form-input form-select"
                 value={toAccountId}
                 onChange={(e) => setToAccountId(e.target.value)}
                 disabled={submitting}
@@ -121,9 +137,10 @@ export default function Transfer() {
             </div>
 
             <div className="form-group">
-              <label>Amount ($)</label>
+              <label className="form-label">Amount ($)</label>
               <input
                 type="number"
+                className="form-input"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -134,9 +151,10 @@ export default function Transfer() {
             </div>
 
             <div className="form-group">
-              <label>Description (optional)</label>
+              <label className="form-label">Description (optional)</label>
               <input
                 type="text"
+                className="form-input"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g., Payment for rent"
@@ -145,8 +163,8 @@ export default function Transfer() {
             </div>
 
             <div className="form-group">
-              <button type="submit" disabled={submitting}>
-                {submitting ? 'Processing...' : 'Transfer'}
+              <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+                {submitting ? 'Processing...' : 'Transfer Funds'}
               </button>
             </div>
           </form>

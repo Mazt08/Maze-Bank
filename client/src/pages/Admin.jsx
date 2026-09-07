@@ -41,80 +41,66 @@ export default function Admin() {
 
   if (!user || user.role !== 'admin') {
     return (
-      <div className="page">
-        <div className="error">Access denied. Admin privileges required.</div>
+      <div className="card">
+        <div className="alert alert-danger">Access denied. Admin privileges required.</div>
       </div>
     );
   }
 
   return (
-    <div className="page">
-      <h1>⚙️ Admin Panel</h1>
+    <div>
+      <h1 className="page-title mb-3">Admin Panel</h1>
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="alert alert-danger mb-3">{error}</div>}
 
       {loading ? (
-        <div className="loading">Loading admin data...</div>
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          <span>Loading admin data...</span>
+        </div>
       ) : (
-        <>
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid #ddd' }}>
+        <div className="card">
+          <div className="admin-tabs">
             <button
-              className={`btn ${activeTab === 'stats' ? '' : 'btn-secondary'}`}
+              className={`admin-tab ${activeTab === 'stats' ? 'active' : ''}`}
               onClick={() => setActiveTab('stats')}
-              style={{
-                background: activeTab === 'stats' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'stats' ? 'white' : '#667eea',
-                borderBottom: activeTab === 'stats' ? '3px solid #667eea' : 'none',
-                borderRadius: '0',
-              }}
             >
-              📊 Stats
+              Stats
             </button>
             <button
-              className={`btn ${activeTab === 'users' ? '' : 'btn-secondary'}`}
+              className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
               onClick={() => setActiveTab('users')}
-              style={{
-                background: activeTab === 'users' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'users' ? 'white' : '#667eea',
-                borderBottom: activeTab === 'users' ? '3px solid #667eea' : 'none',
-                borderRadius: '0',
-              }}
             >
-              👥 Users
+              Users
             </button>
             <button
-              className={`btn ${activeTab === 'accounts' ? '' : 'btn-secondary'}`}
+              className={`admin-tab ${activeTab === 'accounts' ? 'active' : ''}`}
               onClick={() => setActiveTab('accounts')}
-              style={{
-                background: activeTab === 'accounts' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'accounts' ? 'white' : '#667eea',
-                borderBottom: activeTab === 'accounts' ? '3px solid #667eea' : 'none',
-                borderRadius: '0',
-              }}
             >
-              🏦 Accounts
+              Accounts
             </button>
           </div>
 
           {/* Stats Tab */}
           {activeTab === 'stats' && stats && (
-            <div className="dashboard-grid">
-              <div className="card">
-                <h3>Total Users</h3>
-                <div className="balance-amount">{stats.totalUsers}</div>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-label">Total Users</div>
+                <div className="stat-value">{stats.totalUsers}</div>
               </div>
-              <div className="card">
-                <h3>Total Accounts</h3>
-                <div className="balance-amount">{stats.totalAccounts}</div>
+              <div className="stat-card">
+                <div className="stat-label">Total Accounts</div>
+                <div className="stat-value">{stats.totalAccounts}</div>
               </div>
-              <div className="card">
-                <h3>Total Balance</h3>
-                <div className="balance-amount">${parseFloat(stats.totalBalance).toFixed(2)}</div>
+              <div className="stat-card">
+                <div className="stat-label">Total Balance</div>
+                <div className="stat-value">
+                  ${parseFloat(stats.totalBalance).toFixed(2)}
+                </div>
               </div>
-              <div className="card">
-                <h3>Total Transactions</h3>
-                <div className="balance-amount">{stats.totalTransactions}</div>
+              <div className="stat-card">
+                <div className="stat-label">Total Transactions</div>
+                <div className="stat-value">{stats.totalTransactions}</div>
               </div>
             </div>
           )}
@@ -123,8 +109,8 @@ export default function Admin() {
           {activeTab === 'users' && (
             <div>
               <h2>All Users ({users.length})</h2>
-              <div className="table-container">
-                <table>
+              <div className="table-container mt-2">
+                <table className="table">
                   <thead>
                     <tr>
                       <th>ID</th>
@@ -136,24 +122,24 @@ export default function Admin() {
                   <tbody>
                     {users.map((u) => (
                       <tr key={u.id}>
-                        <td>{u.id}</td>
+                        <td className="font-mono text-sm">{u.id}</td>
                         <td>
-                          <strong>{u.username}</strong>
+                          <span className="font-medium">{u.username}</span>
                         </td>
                         <td>
                           <span
-                            style={{
-                              background: u.role === 'admin' ? '#667eea' : '#ccc',
-                              color: 'white',
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: '4px',
-                              fontSize: '0.85rem',
-                            }}
+                            className={
+                              u.role === 'admin'
+                                ? 'badge badge-primary'
+                                : 'badge badge-default'
+                            }
                           >
                             {u.role}
                           </span>
                         </td>
-                        <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                        <td className="text-secondary">
+                          {new Date(u.created_at).toLocaleDateString()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -166,29 +152,29 @@ export default function Admin() {
           {activeTab === 'accounts' && (
             <div>
               <h2>All Accounts ({accounts.length})</h2>
-              <div className="table-container">
-                <table>
+              <div className="table-container mt-2">
+                <table className="table">
                   <thead>
                     <tr>
                       <th>Account Number</th>
                       <th>Username</th>
                       <th>Type</th>
-                      <th>Balance</th>
+                      <th className="text-right">Balance</th>
                       <th>Created</th>
                     </tr>
                   </thead>
                   <tbody>
                     {accounts.map((acc) => (
                       <tr key={acc.id}>
-                        <td>
-                          <code>{acc.account_number}</code>
-                        </td>
+                        <td className="font-mono text-sm">{acc.account_number}</td>
                         <td>{acc.username}</td>
                         <td>{acc.account_type}</td>
-                        <td>
-                          <strong>${parseFloat(acc.balance).toFixed(2)}</strong>
+                        <td className="table-amount">
+                          ${parseFloat(acc.balance).toFixed(2)}
                         </td>
-                        <td>{new Date(acc.created_at).toLocaleDateString()}</td>
+                        <td className="text-secondary">
+                          {new Date(acc.created_at).toLocaleDateString()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -196,7 +182,7 @@ export default function Admin() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

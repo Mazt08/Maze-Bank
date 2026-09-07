@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function seed() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
 
   try {
     console.log('🌱 Starting database seed...');
@@ -16,14 +16,14 @@ async function seed() {
     const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
     
     console.log('📋 Creating schema...');
-    await client.query(schemaSql);
+    await connection.query(schemaSql);
 
     // Read and execute seed data
     const seedPath = path.join(__dirname, '..', '..', 'database', 'seed.sql');
     const seedSql = fs.readFileSync(seedPath, 'utf-8');
-    
+
     console.log('📦 Seeding data...');
-    await client.query(seedSql);
+    await connection.query(seedSql);
 
     console.log('✅ Database seeded successfully!');
     console.log(`
@@ -39,7 +39,7 @@ Test Credentials:
     console.error('❌ Seed failed:', err);
     process.exit(1);
   } finally {
-    client.release();
+    connection.release();
     await pool.end();
   }
 }

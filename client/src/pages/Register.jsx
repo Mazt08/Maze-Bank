@@ -33,7 +33,6 @@ export default function Register() {
       await register(username, password);
       setSuccess('Registration successful! Logging you in...');
 
-      // Auto-login after registration
       setTimeout(async () => {
         try {
           await login(username, password);
@@ -50,60 +49,72 @@ export default function Register() {
   };
 
   return (
-    <div className="page">
-      <div className="form">
-        <h2>🏦 Maze Bank Registration</h2>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">
+            <span className="auth-logo-icon">M</span>
+            <span>Maze Bank</span>
+          </div>
+          <p className="auth-subtitle">Create a new account</p>
+        </div>
 
-        {error && <div className="error">{error}</div>}
-        {success && <div className="success">{success}</div>}
+        {error && <div className="alert alert-danger">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Username</label>
+            <label className="form-label">Username</label>
             <input
               type="text"
+              className="form-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Choose a username"
               disabled={loading}
               required
+              autoComplete="username"
             />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label className="form-label">Password</label>
             <input
               type="password"
+              className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 6 characters"
               disabled={loading}
               required
+              autoComplete="new-password"
             />
           </div>
 
           <div className="form-group">
-            <label>Confirm Password</label>
+            <label className="form-label">Confirm Password</label>
             <input
               type="password"
+              className="form-input"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
               disabled={loading}
               required
+              autoComplete="new-password"
             />
           </div>
 
           <div className="form-group">
-            <button type="submit" disabled={loading}>
-              {loading ? 'Registering...' : 'Register'}
+            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+              {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </div>
         </form>
 
-        <p className="text-center mt">
-          Already have an account? <Link to="/login">Login here</Link>
-        </p>
+        <div className="auth-footer">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </div>
       </div>
     </div>
   );

@@ -26,91 +26,73 @@ export default function Login() {
   };
 
   return (
-    <div className="page">
-      <div className="form">
-        <h2>🏦 Maze Bank Login</h2>
-
-        <div className="warning-banner">
-          <strong>⚠️ WARNING</strong>
-          This is a deliberately vulnerable application for educational purposes
-          only. It contains SQL injection and session hijacking vulnerabilities.
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">
+            <span className="auth-logo-icon">M</span>
+            <span>Maze Bank</span>
+          </div>
+          <p className="auth-subtitle">Sign in to your account</p>
         </div>
 
-        {error && <div className="error">{error}</div>}
+        {error && <div className="alert alert-danger">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Username</label>
+            <label className="form-label">Username</label>
             <input
               type="text"
+              className="form-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
+              placeholder="Enter your username"
               disabled={loading}
+              autoComplete="username"
             />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label className="form-label">Password</label>
             <input
               type="password"
+              className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder="Enter your password"
               disabled={loading}
+              autoComplete="current-password"
             />
           </div>
 
           <div className="form-group">
-            <button type="submit" disabled={loading}>
-              {loading ? 'Logging in...' : 'Login'}
+            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </div>
         </form>
 
-        <p className="text-center mt">
-          Don't have an account? <Link to="/register">Register here</Link>
-        </p>
+        <div className="auth-footer">
+          Don't have an account? <Link to="/register">Create one</Link>
+        </div>
 
-        <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
-
-        <div className="card">
-          <h4>Test Credentials (for learning):</h4>
-          <ul style={{ marginLeft: '1.5rem' }}>
-            <li>
-              <strong>alice</strong> / pass123
-            </li>
-            <li>
-              <strong>bob</strong> / pass456
-            </li>
-            <li>
-              <strong>charlie</strong> / pass789
-            </li>
-            <li>
-              <strong>admin</strong> / admin123 (admin access)
-            </li>
+        <div className="credentials-box">
+          <div className="credentials-title">Test Credentials</div>
+          <ul className="credentials-list">
+            <li>alice / pass123</li>
+            <li>bob / pass456</li>
+            <li>charlie / pass789</li>
+            <li>admin / admin123 (Admin)</li>
           </ul>
         </div>
 
-        <div className="card" style={{ marginTop: '1rem', backgroundColor: '#f0f4ff' }}>
-          <h4>💡 SQL Injection Vulnerability:</h4>
-          <p>Try logging in with:</p>
-          <code
-            style={{
-              display: 'block',
-              background: '#fff',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              fontSize: '0.9rem',
-              overflowX: 'auto',
-            }}
-          >
-            Username: admin' -- <br />
+        <div className="vuln-box">
+          <div className="vuln-title">SQL Injection Demo</div>
+          <code className="vuln-code">
+            Username: admin' --&lt;br /&gt;
             Password: anything
           </code>
-          <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-            This bypasses password validation using SQL comment injection!
-          </p>
+          <p className="vuln-hint">This bypasses password validation using SQL comment injection!</p>
         </div>
       </div>
     </div>
