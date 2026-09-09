@@ -125,6 +125,61 @@ export async function updateAccountBalance(req, res) {
   }
 }
 
+export async function createAccount(req, res) {
+  try {
+    const { userId, type } = req.body;
+
+    if (!userId || !type) {
+      return res.status(400).json({ error: 'User ID and account type are required' });
+    }
+
+    if (!['checking', 'savings'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid account type' });
+    }
+
+    // Verify user exists
+    const [userRows] = await pool.query(
+      'SELECT id, username FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const username = userRows[0].username;
+    const year = new Date().getFullYear();
+
+    // Generate unique account number: {prefix}-{year}-{USERNAME}
+    const [[{ maxPrefix }]] = await pool.query(
+      "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(account_number, '-', 1) AS UNSIGNED)), 1000) as maxPrefix FROM accounts"
+    );
+    const prefix = maxPrefix + 1;
+    const accountNumber = `${prefix}-${year}-${username.toUpperCase()}`;
+
+    // Create account with balance 0.00
+    const [result] = await pool.query(
+      'INSERT INTO accounts (user_id, account_number, account_type, balance, created_at) VALUES (?, ?, ?, 0.00, NOW())',
+      [userId, accountNumber, type]
+    );
+
+    return res.status(201).json({
+      message: 'Account created successfully',
+      account: {
+        id: result.insertId,
+        user_id: userId,
+        account_number: accountNumber,
+        account_type: type,
+        balance: '0.00',
+        created_at: new Date().toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error('Create account error:', err);
+    return res.status(500).json({ error: 'Failed to create account' });
+  }
+}
+
 export async function getSystemStats(req, res) {
   try {
     const [userCountRows] = await pool.query('SELECT COUNT(*) as count FROM users');

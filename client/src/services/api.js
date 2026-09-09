@@ -91,6 +91,8 @@ export const adminAPI = {
   getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
   updateBalance: (accountId, newBalance) =>
     api.put(`/admin/accounts/${accountId}/balance`, { newBalance }),
+  createAccount: (userId, type) =>
+    api.post("/admin/accounts", { userId, type }),
   getStats: () => api.get("/admin/stats"),
 };
 

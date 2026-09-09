@@ -11,6 +11,14 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('stats');
 
+  // Add Account modal state
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedType, setSelectedType] = useState('checking');
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
+  const [creating, setCreating] = useState(false);
+
   useEffect(() => {
     if (user?.role !== 'admin') {
       setError('Admin access required');
@@ -36,6 +44,32 @@ export default function Admin() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddAccount = async () => {
+    if (!selectedUser) {
+      setFormError('Please select a user');
+      return;
+    }
+
+    setFormError('');
+    setFormSuccess('');
+    setCreating(true);
+
+    try {
+      await adminAPI.createAccount(selectedUser, selectedType);
+      setFormSuccess('Account created successfully');
+      setShowModal(false);
+      setSelectedUser('');
+      setSelectedType('checking');
+      // Refresh accounts
+      const accountsRes = await adminAPI.getAllAccounts();
+      setAccounts(accountsRes.data.accounts);
+    } catch (err) {
+      setFormError(err.response?.data?.error || 'Failed to create account');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -151,7 +185,97 @@ export default function Admin() {
           {/* Accounts Tab */}
           {activeTab === 'accounts' && (
             <div>
-              <h2>All Accounts ({accounts.length})</h2>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h2>All Accounts ({accounts.length})</h2>
+                <button
+                  onClick={() => {
+                    setSelectedUser('');
+                    setSelectedType('checking');
+                    setFormError('');
+                    setFormSuccess('');
+                    setShowModal(true);
+                  }}
+                  className="btn btn-primary"
+                >
+                  Add Account
+                </button>
+              </div>
+
+              {/* Add Account Modal */}
+              {showModal && (
+                <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+                  <div
+                    className="modal-content"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="modal-header">
+                      <h3>Add New Account</h3>
+                      <button onClick={() => setShowModal(false)} className="btn-close">
+                        ×
+                      </button>
+                    </div>
+                    <div className="modal-body">
+                      {formError && <div className="alert alert-danger">{formError}</div>}
+                      {formSuccess && <div className="alert alert-success">{formSuccess}</div>}
+
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleAddAccount();
+                      }}>
+                        <div className="form-group mb-3">
+                          <label className="form-label">User</label>
+                          <select
+                            className="form-select"
+                            value={selectedUser}
+                            onChange={(e) => setSelectedUser(e.target.value)}
+                            required
+                            disabled={creating}
+                          >
+                            <option value="">Select a user</option>
+                            {users.map((u) => {
+                              const label =
+                                u.username +
+                                " (" +
+                                (u.role === "admin" ? "admin" : "user") +
+                                ")";
+                              return (
+                                <option key={u.id} value={u.id}>
+                                  {label}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        <div className="form-group mb-3">
+                          <label className="form-label">Account Type</label>
+                          <select
+                            className="form-select"
+                            value={selectedType}
+                            onChange={(e) => setSelectedType(e.target.value)}
+                            required
+                            disabled={creating}
+                          >
+                            <option value="checking">Checking</option>
+                            <option value="savings">Savings</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <button
+                            type="submit"
+                            className="btn btn-success w-100"
+                            disabled={creating}
+                          >
+                            {creating ? 'Creating...' : 'Create Account'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="table-container mt-2">
                 <table className="table">
                   <thead>

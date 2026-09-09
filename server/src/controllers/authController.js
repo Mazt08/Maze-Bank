@@ -30,10 +30,26 @@ export async function registerUser(req, res) {
       [username, passwordHash, "user"],
     );
 
+    const userId = result.insertId;
+    const year = new Date().getFullYear();
+
+    // AUTO-CREATE: Checking account with format {prefix}-{year}-{USERNAME}
+    const [[{ maxPrefix }]] = await pool.query(
+      "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(account_number, '-', 1) AS UNSIGNED)), 1000) as maxPrefix FROM accounts"
+    );
+    const prefix = maxPrefix + 1;
+    const upperUsername = username.toUpperCase();
+    const accountNumber = `${prefix}-${year}-${upperUsername}`;
+
+    await pool.query(
+      "INSERT INTO accounts (user_id, account_number, account_type, balance, created_at) VALUES (?, ?, ?, 0.00, NOW())",
+      [userId, accountNumber, "checking"],
+    );
+
     return res.status(201).json({
       message: "User registered successfully",
       user: {
-        id: result.insertId,
+        id: userId,
         username,
         role: "user",
       },
