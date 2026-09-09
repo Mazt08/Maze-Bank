@@ -1,9 +1,9 @@
-import crypto from 'crypto';
-import pool from '../db/pool.js';
+import crypto from "crypto";
+import pool from "../db/pool.js";
 
 /**
  * Session Middleware - INTENTIONALLY VULNERABLE FOR EDUCATIONAL PURPOSES
- * 
+ *
  * VULNERABILITIES:
  * 1. Weak token generation (predictable hash)
  * 2. No cryptographic randomness
@@ -12,44 +12,33 @@ import pool from '../db/pool.js';
  * 5. Tokens transmitted in non-HttpOnly cookies
  */
 
-// VULN: Predictable session token generation based on username and timestamp
-// An attacker can brute-force tokens by trying hashes of (username + nearby_timestamp)
-function generateSessionToken(username) {
-  const timestamp = Date.now();
-  // VULN: Using deterministic hash of predictable data
-  return crypto.createHash('sha256')
-    .update(`${username}:${timestamp}`)
-    .digest('hex');
+// Session IDs are independent of user-controlled or otherwise predictable values.
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString("hex");
 }
-
-/* SECURE: Cryptographically random token generation
-function generateSessionToken(username) {
-  return crypto.randomBytes(32).toString('hex');
-}
-*/
 
 // VULN: Session validation doesn't check IP, User-Agent, or expiry binding
 async function validateSession(token) {
   try {
     const [rows] = await pool.query(
-      'SELECT * FROM sessions WHERE session_token = ?',
-      [token]
+      "SELECT * FROM sessions WHERE session_token = ?",
+      [token],
     );
-    
+
     if (rows.length === 0) {
       return null;
     }
 
     const session = rows[0];
-    
+
     // VULN: No validation of:
     // - IP address (can be reused from different locations)
     // - User-Agent (can be reused from different browsers)
     // - Expiry time (tokens persist indefinitely)
     // - Rotation (same token used for all requests)
-    
+
     return session;
-    
+
     /* SECURE: Session binding and validation
     const session = rows[0];
     
@@ -67,30 +56,30 @@ async function validateSession(token) {
     return session;
     */
   } catch (err) {
-    console.error('Session validation error:', err);
+    console.error("Session validation error:", err);
     return null;
   }
 }
 
 // Create a new session for a user after successful authentication
-async function createSession(userId, username) {
+async function createSession(userId) {
   try {
-    const token = generateSessionToken(username);
-    
+    const token = generateSessionToken();
+
     const [result] = await pool.query(
-      'INSERT INTO sessions (user_id, session_token, created_at, expires_at) VALUES (?, ?, CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 24 HOUR))',
-      [userId, token]
+      "INSERT INTO sessions (user_id, session_token, created_at, expires_at) VALUES (?, ?, CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 24 HOUR))",
+      [userId, token],
     );
-    
+
     // Fetch the created session
     const [sessionRows] = await pool.query(
-      'SELECT * FROM sessions WHERE id = ?',
-      [result.insertId]
+      "SELECT * FROM sessions WHERE id = ?",
+      [result.insertId],
     );
-    
+
     return sessionRows[0];
   } catch (err) {
-    console.error('Session creation error:', err);
+    console.error("Session creation error:", err);
     throw err;
   }
 }
@@ -101,28 +90,28 @@ export function sessionMiddleware(req, res, next) {
   // 1. Non-HttpOnly cookie (JavaScript-accessible)
   // 2. Query parameter (appears in logs and browser history)
   // 3. Authorization header (transmitted unencrypted over HTTP)
-  
-  const token = 
+
+  const token =
+    req.headers?.authorization?.replace("Bearer ", "") ||
     req.cookies?.session_token ||
-    req.query?.session_token ||
-    req.headers?.authorization?.replace('Bearer ', '');
+    req.query?.session_token;
 
   if (!token) {
-    return res.status(401).json({ error: 'No session token provided' });
+    return res.status(401).json({ error: "No session token provided" });
   }
 
   validateSession(token)
     .then((session) => {
       if (!session) {
-        return res.status(401).json({ error: 'Invalid or expired session' });
+        return res.status(401).json({ error: "Invalid or expired session" });
       }
       req.session = session;
       req.userId = session.user_id;
       next();
     })
     .catch((err) => {
-      console.error('Middleware error:', err);
-      res.status(500).json({ error: 'Session validation failed' });
+      console.error("Middleware error:", err);
+      res.status(500).json({ error: "Session validation failed" });
     });
 }
 

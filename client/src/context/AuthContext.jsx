@@ -1,12 +1,17 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { authAPI } from '../services/api';
+import React, { createContext, useState, useEffect, useCallback } from "react";
+import {
+  authAPI,
+  getActiveSessionToken,
+  storeSessionToken,
+  removeActiveSessionToken,
+} from "../services/api";
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('session_token'));
-  const [loading, setLoading] = useState(!!localStorage.getItem('session_token'));
+  const [token, setToken] = useState(getActiveSessionToken());
+  const [loading, setLoading] = useState(!!getActiveSessionToken());
   const [error, setError] = useState(null);
 
   // Check if user is already authenticated
@@ -19,8 +24,9 @@ export function AuthProvider({ children }) {
           setLoading(false);
         })
         .catch((err) => {
-          console.error('Failed to fetch user:', err);
-          localStorage.removeItem('session_token');
+          console.error("Failed to fetch user:", err);
+          const activeUser = sessionStorage.getItem("active_session_user");
+          if (activeUser) removeActiveSessionToken(activeUser);
           setToken(null);
           setLoading(false);
         });
@@ -36,14 +42,14 @@ export function AuthProvider({ children }) {
       const response = await authAPI.login(username, password);
       const { token: sessionToken, user: userData } = response.data;
 
-      // Store token in localStorage (VULN: not HttpOnly)
-      localStorage.setItem('session_token', sessionToken);
+      // Store the exposed lab token per browser tab (VULN: not HttpOnly).
+      storeSessionToken(userData.username, sessionToken);
       setToken(sessionToken);
       setUser(userData);
 
       return userData;
     } catch (err) {
-      const errorMessage = err.response?.data?.error || 'Login failed';
+      const errorMessage = err.response?.data?.error || "Login failed";
       setError(errorMessage);
       throw err;
     } finally {
@@ -58,7 +64,7 @@ export function AuthProvider({ children }) {
       const response = await authAPI.register(username, password);
       return response.data;
     } catch (err) {
-      const errorMessage = err.response?.data?.error || 'Registration failed';
+      const errorMessage = err.response?.data?.error || "Registration failed";
       setError(errorMessage);
       throw err;
     } finally {
@@ -70,9 +76,10 @@ export function AuthProvider({ children }) {
     try {
       await authAPI.logout();
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error("Logout error:", err);
     } finally {
-      localStorage.removeItem('session_token');
+      const activeUser = sessionStorage.getItem("active_session_user");
+      if (activeUser) removeActiveSessionToken(activeUser);
       setToken(null);
       setUser(null);
       setError(null);
@@ -90,15 +97,13 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!token,
   };
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = React.useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 }

@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { accountAPI } from '../services/api';
+import React, { useEffect, useState, useCallback } from "react";
+import { accountAPI } from "../services/api";
 
 export default function History() {
   const [accounts, setAccounts] = useState([]);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [selectedAccountId, setSelectedAccountId] = useState("");
   const [transactions, setTransactions] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -19,7 +19,7 @@ export default function History() {
         setSelectedAccountId(response.data.accounts[0].id);
       }
     } catch (err) {
-      setError('Failed to load accounts');
+      setError("Failed to load accounts");
       console.error(err);
     } finally {
       setLoading(false);
@@ -33,9 +33,9 @@ export default function History() {
       setSearching(true);
       const response = await accountAPI.getHistory(selectedAccountId);
       setTransactions(response.data.transactions);
-      setError('');
+      setError("");
     } catch (err) {
-      setError('Failed to load transactions');
+      setError("Failed to load transactions");
       console.error(err);
     } finally {
       setSearching(false);
@@ -47,7 +47,7 @@ export default function History() {
   }, [loadAccounts]);
 
   useEffect(() => {
-    if (selectedAccountId && searchTerm === '') {
+    if (selectedAccountId && searchTerm === "") {
       loadTransactionHistory();
     }
   }, [selectedAccountId, searchTerm, loadTransactionHistory]);
@@ -58,14 +58,14 @@ export default function History() {
 
     try {
       setSearching(true);
-      setError('');
+      setError("");
       const response = await accountAPI.searchTransactions(
         selectedAccountId,
-        searchTerm
+        searchTerm,
       );
       setTransactions(response.data.transactions);
     } catch (err) {
-      setError('Search failed');
+      setError("Search failed");
       console.error(err);
     } finally {
       setSearching(false);
@@ -73,7 +73,7 @@ export default function History() {
   };
 
   const handleClearSearch = () => {
-    setSearchTerm('');
+    setSearchTerm("");
     loadTransactionHistory();
   };
 
@@ -98,16 +98,14 @@ export default function History() {
               onChange={(e) => {
                 setSelectedAccountId(e.target.value);
                 setTransactions([]);
-                setSearchTerm('');
+                setSearchTerm("");
               }}
               disabled={searching}
             >
               <option value="">Select account</option>
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
-                  {acc.account_number} - ${
-                    parseFloat(acc.balance).toFixed(2)
-                  }
+                  {acc.account_number} - ${parseFloat(acc.balance).toFixed(2)}
                 </option>
               ))}
             </select>
@@ -125,8 +123,12 @@ export default function History() {
                   disabled={searching}
                 />
               </div>
-              <button type="submit" className="btn btn-primary" disabled={searching}>
-                {searching ? 'Searching...' : 'Search'}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={searching}
+              >
+                {searching ? "Searching..." : "Search"}
               </button>
               {searchTerm && (
                 <button
@@ -139,14 +141,6 @@ export default function History() {
                 </button>
               )}
             </form>
-          )}
-
-          {searchTerm && (
-            <div className="vuln-box">
-              <div className="vuln-title">SQL Injection Demo</div>
-              <code className="vuln-code">%' OR '1'='1</code>
-              <p className="vuln-hint">This returns ALL transactions instead of just filtered ones!</p>
-            </div>
           )}
         </div>
       )}
@@ -162,7 +156,9 @@ export default function History() {
             )}
           </h2>
           {transactions.length === 0 ? (
-            <div className="text-center text-muted" style={{ padding: '24px' }}>No transactions found</div>
+            <div className="text-center text-muted" style={{ padding: "24px" }}>
+              No transactions found
+            </div>
           ) : (
             <div className="table-container mt-2">
               <table className="table">
@@ -188,16 +184,16 @@ export default function History() {
                         </span>
                       </td>
                       <td className="font-mono text-sm">
-                        {tx.from_account || '-'}
+                        {tx.from_account || "-"}
                       </td>
                       <td className="font-mono text-sm">
-                        {tx.to_account || '-'}
+                        {tx.to_account || "-"}
                       </td>
                       <td className="table-amount">
                         ${parseFloat(tx.amount).toFixed(2)}
                       </td>
                       <td className="text-secondary">
-                        {tx.description || '-'}
+                        {tx.description || "-"}
                       </td>
                     </tr>
                   ))}
