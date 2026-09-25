@@ -23,8 +23,7 @@ export function AuthProvider({ children }) {
           setUser(res.data.user);
           setLoading(false);
         })
-        .catch((err) => {
-          console.error("Failed to fetch user:", err);
+        .catch(() => {
           const activeUser = sessionStorage.getItem("active_session_user");
           if (activeUser) removeActiveSessionToken(activeUser);
           setToken(null);
@@ -75,8 +74,8 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     try {
       await authAPI.logout();
-    } catch (err) {
-      console.error("Logout error:", err);
+    } catch {
+      // Swallow logout errors — session cleanup below always runs.
     } finally {
       const activeUser = sessionStorage.getItem("active_session_user");
       if (activeUser) removeActiveSessionToken(activeUser);

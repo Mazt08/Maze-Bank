@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { adminAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Admin() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [loginAttempts, setLoginAttempts] = useState([]);
+  const [adminLogs, setAdminLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('stats');
@@ -14,7 +17,6 @@ export default function Admin() {
   // Add Account modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
-  const [selectedType, setSelectedType] = useState('checking');
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
   const [creating, setCreating] = useState(false);
@@ -27,21 +29,25 @@ export default function Admin() {
     loadData();
   }, [user]);
 
+  usePageTitle('Admin Panel');
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes, accountsRes] = await Promise.all([
+      const [statsRes, usersRes, accountsRes, logsRes] = await Promise.all([
         adminAPI.getStats(),
         adminAPI.getAllUsers(),
         adminAPI.getAllAccounts(),
+        adminAPI.getLogs(),
       ]);
 
       setStats(statsRes.data.stats);
       setUsers(usersRes.data.users);
       setAccounts(accountsRes.data.accounts);
+      setLoginAttempts(logsRes.data.login_attempts || []);
+      setAdminLogs(logsRes.data.admin_logs || []);
     } catch (err) {
       setError('Failed to load admin data');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -58,12 +64,10 @@ export default function Admin() {
     setCreating(true);
 
     try {
-      await adminAPI.createAccount(selectedUser, selectedType);
+      await adminAPI.createAccount(selectedUser);
       setFormSuccess('Account created successfully');
       setShowModal(false);
       setSelectedUser('');
-      setSelectedType('checking');
-      // Refresh accounts
       const accountsRes = await adminAPI.getAllAccounts();
       setAccounts(accountsRes.data.accounts);
     } catch (err) {
@@ -88,30 +92,44 @@ export default function Admin() {
       {error && <div className="alert alert-danger mb-3">{error}</div>}
 
       {loading ? (
-        <div className="loading">
+        <div className="loading" role="status" aria-label="Loading admin data">
           <div className="loading-spinner"></div>
           <span>Loading admin data...</span>
         </div>
       ) : (
         <div className="card">
-          <div className="admin-tabs">
+          <div className="admin-tabs" role="tablist" aria-label="Admin sections">
             <button
+              role="tab"
+              aria-selected={activeTab === 'stats'}
               className={`admin-tab ${activeTab === 'stats' ? 'active' : ''}`}
               onClick={() => setActiveTab('stats')}
             >
               Stats
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'users'}
               className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
               onClick={() => setActiveTab('users')}
             >
               Users
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'accounts'}
               className={`admin-tab ${activeTab === 'accounts' ? 'active' : ''}`}
               onClick={() => setActiveTab('accounts')}
             >
               Accounts
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'logs'}
+              className={`admin-tab ${activeTab === 'logs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('logs')}
+            >
+              Logs
             </button>
           </div>
 
@@ -129,12 +147,16 @@ export default function Admin() {
               <div className="stat-card">
                 <div className="stat-label">Total Balance</div>
                 <div className="stat-value">
-                  ${parseFloat(stats.totalBalance).toFixed(2)}
+                  ${parseFloat(stats.totalBalance || 0).toFixed(2)}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Total Transactions</div>
                 <div className="stat-value">{stats.totalTransactions}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Failed Logins</div>
+                <div className="stat-value">{loginAttempts.length}</div>
               </div>
             </div>
           )}
@@ -144,13 +166,13 @@ export default function Admin() {
             <div>
               <h2>All Users ({users.length})</h2>
               <div className="table-container mt-2">
-                <table className="table">
+                <table className="table" aria-label="All users">
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Username</th>
-                      <th>Role</th>
-                      <th>Joined</th>
+                      <th scope="col">ID</th>
+                      <th scope="col">Username</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Joined</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -190,7 +212,6 @@ export default function Admin() {
                 <button
                   onClick={() => {
                     setSelectedUser('');
-                    setSelectedType('checking');
                     setFormError('');
                     setFormSuccess('');
                     setShowModal(true);
@@ -203,14 +224,24 @@ export default function Admin() {
 
               {/* Add Account Modal */}
               {showModal && (
-                <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+                <div
+                  className="modal-backdrop"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="modalTitle"
+                  onClick={() => setShowModal(false)}
+                >
                   <div
                     className="modal-content"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="modal-header">
-                      <h3>Add New Account</h3>
-                      <button onClick={() => setShowModal(false)} className="btn-close">
+                      <h3 id="modalTitle">Add New Account</h3>
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="btn-close"
+                        aria-label="Close dialog"
+                      >
                         ×
                       </button>
                     </div>
@@ -218,13 +249,11 @@ export default function Admin() {
                       {formError && <div className="alert alert-danger">{formError}</div>}
                       {formSuccess && <div className="alert alert-success">{formSuccess}</div>}
 
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleAddAccount();
-                      }}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddAccount(); }}>
                         <div className="form-group mb-3">
-                          <label className="form-label">User</label>
+                          <label htmlFor="modalUserSelect" className="form-label">User</label>
                           <select
+                            id="modalUserSelect"
                             className="form-select"
                             value={selectedUser}
                             onChange={(e) => setSelectedUser(e.target.value)}
@@ -232,32 +261,11 @@ export default function Admin() {
                             disabled={creating}
                           >
                             <option value="">Select a user</option>
-                            {users.map((u) => {
-                              const label =
-                                u.username +
-                                " (" +
-                                (u.role === "admin" ? "admin" : "user") +
-                                ")";
-                              return (
-                                <option key={u.id} value={u.id}>
-                                  {label}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-
-                        <div className="form-group mb-3">
-                          <label className="form-label">Account Type</label>
-                          <select
-                            className="form-select"
-                            value={selectedType}
-                            onChange={(e) => setSelectedType(e.target.value)}
-                            required
-                            disabled={creating}
-                          >
-                            <option value="checking">Checking</option>
-                            <option value="savings">Savings</option>
+                            {users.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.username} ({u.role === 'admin' ? 'admin' : 'user'})
+                              </option>
+                            ))}
                           </select>
                         </div>
 
@@ -277,14 +285,13 @@ export default function Admin() {
               )}
 
               <div className="table-container mt-2">
-                <table className="table">
+                <table className="table" aria-label="All accounts">
                   <thead>
                     <tr>
-                      <th>Account Number</th>
-                      <th>Username</th>
-                      <th>Type</th>
-                      <th className="text-right">Balance</th>
-                      <th>Created</th>
+                      <th scope="col">Account Number</th>
+                      <th scope="col">Username</th>
+                      <th scope="col" className="text-right">Balance</th>
+                      <th scope="col">Created</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -292,7 +299,6 @@ export default function Admin() {
                       <tr key={acc.id}>
                         <td className="font-mono text-sm">{acc.account_number}</td>
                         <td>{acc.username}</td>
-                        <td>{acc.account_type}</td>
                         <td className="table-amount">
                           ${parseFloat(acc.balance).toFixed(2)}
                         </td>
@@ -304,6 +310,95 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Logs Tab */}
+          {activeTab === 'logs' && (
+            <div>
+              {/* Failed Login Attempts */}
+              <section aria-labelledby="loginAttemptsHeading">
+                <h2 id="loginAttemptsHeading" className="mb-2">
+                  Failed Login Attempts
+                  <span className="badge badge-danger ml-2">{loginAttempts.length}</span>
+                </h2>
+                <p className="text-secondary text-sm mb-3">
+                  Each entry is evidence of a failed authentication attempt. Run{' '}
+                  <code>poc-bruteforce.py</code> to populate this table for your writeup.
+                </p>
+                {loginAttempts.length === 0 ? (
+                  <div className="text-center text-muted" style={{ padding: '16px' }}>
+                    No failed login attempts recorded yet.
+                  </div>
+                ) : (
+                  <div className="table-container mb-4">
+                    <table className="table" aria-label="Failed login attempts">
+                      <thead>
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col">Username Tried</th>
+                          <th scope="col">IP Address</th>
+                          <th scope="col">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {loginAttempts.map((attempt) => (
+                          <tr key={attempt.id}>
+                            <td className="font-mono text-sm">{attempt.id}</td>
+                            <td className="font-mono text-sm">{attempt.username || '(empty)'}</td>
+                            <td className="font-mono text-sm">{attempt.ip_address}</td>
+                            <td className="text-secondary text-sm">
+                              {new Date(attempt.attempted_at).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+
+              {/* Admin Audit Log */}
+              <section aria-labelledby="adminLogHeading">
+                <h2 id="adminLogHeading" className="mb-2">Admin Audit Log</h2>
+                <p className="text-secondary text-sm mb-3">
+                  Records of privileged admin actions such as balance updates and account creation.
+                </p>
+                {adminLogs.length === 0 ? (
+                  <div className="text-center text-muted" style={{ padding: '16px' }}>
+                    No admin actions logged yet.
+                  </div>
+                ) : (
+                  <div className="table-container">
+                    <table className="table" aria-label="Admin audit log">
+                      <thead>
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col">Admin</th>
+                          <th scope="col">Action</th>
+                          <th scope="col">Details</th>
+                          <th scope="col">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminLogs.map((entry) => (
+                          <tr key={entry.id}>
+                            <td className="font-mono text-sm">{entry.id}</td>
+                            <td className="font-medium">{entry.admin_username}</td>
+                            <td>
+                              <span className="badge badge-primary">{entry.action}</span>
+                            </td>
+                            <td className="text-secondary text-sm">{entry.details || '-'}</td>
+                            <td className="text-secondary text-sm">
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
           )}
         </div>

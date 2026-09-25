@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { accountAPI } from "../services/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 export default function History() {
   const [accounts, setAccounts] = useState([]);
@@ -9,6 +10,8 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+
+  usePageTitle("Transaction History");
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -20,7 +23,6 @@ export default function History() {
       }
     } catch (err) {
       setError("Failed to load accounts");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -36,7 +38,6 @@ export default function History() {
       setError("");
     } catch (err) {
       setError("Failed to load transactions");
-      console.error(err);
     } finally {
       setSearching(false);
     }
@@ -66,7 +67,6 @@ export default function History() {
       setTransactions(response.data.transactions);
     } catch (err) {
       setError("Search failed");
-      console.error(err);
     } finally {
       setSearching(false);
     }
@@ -81,18 +81,25 @@ export default function History() {
     <div>
       <h1 className="page-title mb-3">Transaction History</h1>
 
-      {error && <div className="alert alert-danger mb-3">{error}</div>}
+      {error && (
+        <div className="alert alert-danger mb-3" role="alert">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <div className="loading">
+        <div className="loading" role="status" aria-label="Loading accounts">
           <div className="loading-spinner"></div>
           <span>Loading...</span>
         </div>
       ) : (
         <div className="card">
           <div className="form-group">
-            <label className="form-label">Account</label>
+            <label htmlFor="historyAccountSelect" className="form-label">
+              Account
+            </label>
             <select
+              id="historyAccountSelect"
               className="form-input form-select"
               value={selectedAccountId}
               onChange={(e) => {
@@ -112,21 +119,27 @@ export default function History() {
           </div>
 
           {selectedAccountId && (
-            <form onSubmit={handleSearch} className="search-bar">
+            <form onSubmit={handleSearch} className="search-bar" role="search">
               <div className="search-input-wrapper">
+                <label htmlFor="historySearchInput" className="sr-only">
+                  Search transactions by description
+                </label>
                 <input
+                  id="historySearchInput"
                   type="text"
                   className="form-input"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by description..."
                   disabled={searching}
+                  aria-label="Search transactions by description"
                 />
               </div>
               <button
                 type="submit"
                 className="btn btn-primary"
                 disabled={searching}
+                aria-label="Run transaction search"
               >
                 {searching ? "Searching..." : "Search"}
               </button>
@@ -136,6 +149,7 @@ export default function History() {
                   className="btn btn-secondary"
                   onClick={handleClearSearch}
                   disabled={searching}
+                  aria-label="Clear search and show all transactions"
                 >
                   Clear
                 </button>
@@ -150,8 +164,8 @@ export default function History() {
           <h2>
             Transactions
             {searchTerm && (
-              <span className="text-muted font-mono text-sm">
-                (searching: "{searchTerm}")
+              <span className="text-muted font-mono text-sm ml-2">
+                (searching: &ldquo;{searchTerm}&rdquo;)
               </span>
             )}
           </h2>
@@ -161,15 +175,15 @@ export default function History() {
             </div>
           ) : (
             <div className="table-container mt-2">
-              <table className="table">
+              <table className="table" aria-label="Transaction history">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>From</th>
-                    <th>To</th>
-                    <th className="text-right">Amount</th>
-                    <th>Description</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">From</th>
+                    <th scope="col">To</th>
+                    <th scope="col" className="text-right">Amount</th>
+                    <th scope="col">Description</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -184,10 +198,10 @@ export default function History() {
                         </span>
                       </td>
                       <td className="font-mono text-sm">
-                        {tx.from_account || "-"}
+                        {tx.from_account_number || tx.from_account || "-"}
                       </td>
                       <td className="font-mono text-sm">
-                        {tx.to_account || "-"}
+                        {tx.to_account_number || tx.to_account || "-"}
                       </td>
                       <td className="table-amount">
                         ${parseFloat(tx.amount).toFixed(2)}

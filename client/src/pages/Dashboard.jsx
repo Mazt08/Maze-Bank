@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { accountAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState([]);
+  const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  usePageTitle('Dashboard');
 
   useEffect(() => {
     loadAccounts();
@@ -16,16 +19,13 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const response = await accountAPI.getAccounts();
-      setAccounts(response.data.accounts);
+      setAccount(response.data.accounts[0] || null);
     } catch (err) {
-      setError('Failed to load accounts');
-      console.error(err);
+      setError('Failed to load account');
     } finally {
       setLoading(false);
     }
   };
-
-  const totalBalance = accounts.reduce((sum, acc) => sum + parseFloat(acc.balance), 0);
 
   return (
     <div>
@@ -40,32 +40,28 @@ export default function Dashboard() {
       {error && <div className="alert alert-danger">{error}</div>}
 
       {loading ? (
-        <div className="loading">
+        <div className="loading" role="status" aria-label="Loading account">
           <div className="loading-spinner"></div>
-          <span>Loading accounts...</span>
+          <span>Loading account...</span>
         </div>
-      ) : (
+      ) : account ? (
         <>
-          {/* Balance Summary */}
+          {/* Balance Card - one account per user */}
           <div className="stats-grid mb-4">
             <div className="stat-card">
-              <div className="stat-label">Total Balance</div>
-              <div className="stat-value">${totalBalance.toFixed(2)}</div>
-              <div className="stat-label mt-1" style={{ textTransform: 'none', letterSpacing: 'normal' }}>
-                {accounts.length} account{accounts.length !== 1 ? 's' : ''}
+              <div className="stat-label">Available Balance</div>
+              <div className="stat-value">
+                ${parseFloat(account.balance).toFixed(2)}
+              </div>
+              <div
+                className="stat-label mt-1"
+                style={{ textTransform: 'none', letterSpacing: 'normal' }}
+              >
+                <span className="font-mono text-sm">
+                  {account.account_number}
+                </span>
               </div>
             </div>
-            {accounts.map((account) => (
-              <div className="stat-card" key={account.id}>
-                <div className="stat-label">{account.account_type}</div>
-                <div className="stat-value" style={{ fontSize: '22px' }}>
-                  ${parseFloat(account.balance).toFixed(2)}
-                </div>
-                <div className="stat-label mt-1" style={{ textTransform: 'none', letterSpacing: 'normal' }}>
-                  <span className="font-mono text-sm">{account.account_number}</span>
-                </div>
-              </div>
-            ))}
           </div>
 
           {/* Quick Actions */}
@@ -88,44 +84,52 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Accounts Table */}
+          {/* Account Details */}
           <div className="table-container">
-            <table className="table">
+            <table className="table" aria-label="Account details">
               <thead>
                 <tr>
-                  <th>Account Number</th>
-                  <th>Type</th>
-                  <th>Balance</th>
-                  <th>Created</th>
-                  <th></th>
+                  <th scope="col">Account Number</th>
+                  <th scope="col">Balance</th>
+                  <th scope="col">Created</th>
+                  <th scope="col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((account) => (
-                  <tr key={account.id}>
-                    <td>
-                      <span className="font-mono text-sm">{account.account_number}</span>
-                    </td>
-                    <td>{account.account_type}</td>
-                    <td>
-                      <span className="font-medium">
-                        ${parseFloat(account.balance).toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="text-secondary">
-                      {new Date(account.created_at).toLocaleDateString()}
-                    </td>
-                    <td>
-                      <a href={`/history?account=${account.id}`} className="btn btn-ghost btn-sm">
-                        View
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                <tr key={account.id}>
+                  <td>
+                    <span className="font-mono text-sm">
+                      {account.account_number}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="font-medium">
+                      ${parseFloat(account.balance).toFixed(2)}
+                    </span>
+                  </td>
+                  <td className="text-secondary">
+                    {new Date(account.created_at).toLocaleDateString()}
+                  </td>
+                  <td>
+                    <a
+                      href={`/history?account=${account.id}`}
+                      className="btn btn-ghost btn-sm"
+                      aria-label={`View history for account ${account.account_number}`}
+                    >
+                      View
+                    </a>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </>
+      ) : (
+        <div className="card">
+          <div className="text-center text-muted" style={{ padding: '24px' }}>
+            No account found. An account is created automatically when you register.
+          </div>
+        </div>
       )}
     </div>
   );

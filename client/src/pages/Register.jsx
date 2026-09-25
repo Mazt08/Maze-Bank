@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -11,6 +12,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register, login } = useAuth();
   const navigate = useNavigate();
+
+  usePageTitle('Create Account');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,13 +62,22 @@ export default function Register() {
           <p className="auth-subtitle">Create a new account</p>
         </div>
 
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+        {error && (
+          <div className="alert alert-danger" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success" role="status" aria-live="polite">
+            {success}
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} aria-label="Create Account Form">
           <div className="form-group">
-            <label className="form-label">Username</label>
+            <label htmlFor="registerUsername" className="form-label">Username</label>
             <input
+              id="registerUsername"
               type="text"
               className="form-input"
               value={username}
@@ -78,8 +90,9 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label htmlFor="registerPassword" className="form-label">Password</label>
             <input
+              id="registerPassword"
               type="password"
               className="form-input"
               value={password}
@@ -92,8 +105,9 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Confirm Password</label>
+            <label htmlFor="registerConfirmPassword" className="form-label">Confirm Password</label>
             <input
+              id="registerConfirmPassword"
               type="password"
               className="form-input"
               value={confirmPassword}
@@ -106,7 +120,12 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+            <button
+              type="submit"
+              className="btn btn-primary btn-block"
+              disabled={loading}
+              aria-label="Create your Maze Bank account"
+            >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </div>

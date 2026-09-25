@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Maze Bank — account dashboard" />
+  <title>Dashboard | Maze Bank</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230F2A5C'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" aria-label="Main navigation">
+    <div class="sidebar-header">
+      <a href="/dashboard.html" class="sidebar-logo">
+        <span class="sidebar-logo-icon">M</span>
+        Maze Bank
+      </a>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Main</div>
+        <a href="/dashboard.html" class="sidebar-link active" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a href="/transfer.html" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 10l5-6 5 6"/><path d="M12 4v16"/><path d="M17 14l-5 6-5-6"/></svg>
+          Transfers
+        </a>
+        <a href="/history.html" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Transaction History
+        </a>
+      </div>
+      <div class="sidebar-section admin-only" hidden>
+        <div class="sidebar-section-label">Administration</div>
+        <a href="/admin.html" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Admin Panel
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="logoutBtn" class="sidebar-btn" type="button" aria-label="Sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar" aria-label="User info">
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="topbarAvatar" aria-hidden="true">?</div>
+      <div>
+        <div class="topbar-name" id="topbarUsername">Loading…</div>
+        <div class="topbar-role" id="topbarRole">user</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="content-wrap">
+
+      <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub" id="welcomeMsg">Welcome back</p>
+      </div>
+
+      <div id="dashError" class="alert alert-danger" role="alert" hidden></div>
+
+      <div id="dashLoading" class="loading" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        Loading account…
+      </div>
+
+      <div id="dashContent" hidden>
+        <!-- Balance card -->
+        <div class="stats-grid mb-3">
+          <div class="stat-card">
+            <div class="stat-label">Available Balance</div>
+            <div class="stat-value" id="accountBalance">—</div>
+            <div style="margin-top:6px; font-family:var(--mono); font-size:13px; color:var(--text-muted);" id="accountNumber">—</div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h2 class="card-title" style="font-size:15px;">Quick Actions</h2>
+          </div>
+          <div class="quick-actions">
+            <a href="/transfer.html" class="btn btn-primary">New Transfer</a>
+            <a href="/history.html" class="btn btn-secondary" id="viewHistoryLink" data-history-link>View History</a>
+            <a href="/admin.html" class="btn btn-secondary admin-only" hidden>Admin Panel</a>
+          </div>
+        </div>
+
+        <!-- Account detail table -->
+        <div class="card">
+          <h2 style="font-size:15px; margin-bottom:16px;">Account Details</h2>
+          <div class="table-wrap">
+            <table class="table" aria-label="Your account details">
+              <thead>
+                <tr>
+                  <th scope="col">Account Number</th>
+                  <th scope="col">Balance</th>
+                  <th scope="col">Opened</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono" id="tableAccountNumber">—</td>
+                  <td class="mono" id="tableBalance">—</td>
+                  <td class="sub" id="accountCreated">—</td>
+                  <td>
+                    <a href="/history.html" class="btn btn-ghost btn-sm" data-history-link aria-label="View transaction history">
+                      View
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /dashContent -->
+
+    </div>
+  </main>
+</div>
+
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

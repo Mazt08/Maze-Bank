@@ -13,7 +13,7 @@ export async function getAccountInfo(req, res) {
 
     // SECURE: Parameterized query for account info
     const [rows] = await pool.query(
-      'SELECT id, user_id, account_number, balance, account_type, created_at FROM accounts WHERE user_id = ?',
+      'SELECT id, user_id, account_number, balance, created_at FROM accounts WHERE user_id = ?',
       [userId]
     );
 
@@ -33,7 +33,7 @@ export async function getAccountBalance(req, res) {
 
     // SECURE: Parameterized query to validate ownership
     const [rows] = await pool.query(
-      'SELECT id, user_id, account_number, balance, account_type FROM accounts WHERE id = ? AND user_id = ?',
+      'SELECT id, user_id, account_number, balance FROM accounts WHERE id = ? AND user_id = ?',
       [accountId, userId]
     );
 
