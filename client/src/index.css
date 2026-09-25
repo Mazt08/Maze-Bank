@@ -1061,6 +1061,75 @@ textarea.form-input {
   }
 }
 
+/* Narrow mobile (360px) — ensure nothing overflows the viewport */
+@media (max-width: 400px) {
+  :root {
+    --space-3: 16px;
+    --space-4: 24px;
+  }
+
+  html {
+    font-size: 15px;
+  }
+
+  .auth-card {
+    padding: var(--space-3);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    max-width: 100%;
+  }
+
+  .auth-page {
+    padding: 0;
+    align-items: flex-start;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .admin-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .search-bar {
+    flex-wrap: wrap;
+  }
+
+  .search-bar .btn {
+    flex-shrink: 0;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+  }
+
+  .quick-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* Print Styles */
 @media print {
   .sidebar,
@@ -1072,6 +1141,19 @@ textarea.form-input {
     margin: 0;
     padding: 0;
   }
+}
+
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Modal styles for admin add-account */

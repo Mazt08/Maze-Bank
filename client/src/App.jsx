@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import Transfer from './pages/Transfer';
 import History from './pages/History';
 import Admin from './pages/Admin';
+import NotFound from './pages/NotFound';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 function PrivateRoute({ children }) {
@@ -15,19 +17,19 @@ function PrivateRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="loading">
+      <div className="loading" role="status" aria-label="Loading session">
         <div className="loading-spinner"></div>
         <span>Loading...</span>
       </div>
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
-  return !isAuthenticated ? children : <Navigate to="/dashboard" />;
+  return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
 }
 
 function AppContent() {
@@ -52,8 +54,9 @@ function AppContent() {
           path="/admin"
           element={<PrivateRoute><Layout><Admin /></Layout></PrivateRoute>}
         />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );
@@ -61,8 +64,11 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
+

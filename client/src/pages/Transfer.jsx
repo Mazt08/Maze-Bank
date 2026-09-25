@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { transferAPI } from '../services/api';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Transfer() {
+  const navigate = useNavigate();
   const [fromAccounts, setFromAccounts] = useState([]);
+
+  usePageTitle('Transfer Funds');
   const [toAccounts, setToAccounts] = useState([]);
   const [fromAccountId, setFromAccountId] = useState('');
   const [toAccountId, setToAccountId] = useState('');
@@ -20,15 +25,14 @@ export default function Transfer() {
   const loadTransferOptions = async () => {
     try {
       setLoading(true);
-      const response = await transferAPI.getOptions();
-      setFromAccounts(response.data.fromAccounts);
-      setToAccounts(response.data.toAccounts);
-      if (response.data.fromAccounts.length > 0) {
-        setFromAccountId(response.data.fromAccounts[0].id);
-      }
+      const res = await transferAPI.getOptions();
+      const froms = res.data.fromAccounts || res.data.accounts || [];
+      const tos = res.data.toAccounts || res.data.recipients || [];
+      setFromAccounts(froms);
+      setToAccounts(tos);
+      if (froms.length > 0) setFromAccountId(froms[0].id);
     } catch (err) {
       setError('Failed to load transfer options');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -44,8 +48,13 @@ export default function Transfer() {
       return;
     }
 
-    if (parseFloat(amount) <= 0) {
+    if (isNaN(amount) || parseFloat(amount) <= 0) {
       setError('Amount must be positive');
+      return;
+    }
+
+    if (String(fromAccountId) === String(toAccountId)) {
+      setError('Sender and recipient accounts cannot be the same');
       return;
     }
 
@@ -53,8 +62,8 @@ export default function Transfer() {
 
     try {
       await transferAPI.transfer(
-        parseInt(fromAccountId),
-        parseInt(toAccountId),
+        parseInt(fromAccountId, 10),
+        parseInt(toAccountId, 10),
         parseFloat(amount),
         description
       );
@@ -65,8 +74,8 @@ export default function Transfer() {
       setDescription('');
 
       setTimeout(() => {
-        navigateTo('/dashboard');
-      }, 2000);
+        navigate('/dashboard');
+      }, 1500);
     } catch (err) {
       setError(err.response?.data?.error || 'Transfer failed');
     } finally {
@@ -74,33 +83,25 @@ export default function Transfer() {
     }
   };
 
-  function navigateTo(url) {
-    // Simple navigation without full page reload
-    const link = document.createElement('a');
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
   return (
     <div>
       <h1 className="page-title mb-4">Transfer Funds</h1>
 
-      {error && <div className="alert alert-danger mb-3">{error}</div>}
-      {success && <div className="alert alert-success mb-3">{success}</div>}
+      {error && <div className="alert alert-danger mb-3" role="alert">{error}</div>}
+      {success && <div className="alert alert-success mb-3" role="status">{success}</div>}
 
       {loading ? (
-        <div className="loading">
+        <div className="loading" role="status">
           <div className="loading-spinner"></div>
           <span>Loading...</span>
         </div>
       ) : (
         <div className="card">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} aria-label="Funds Transfer Form">
             <div className="form-group">
-              <label className="form-label">From Account</label>
+              <label htmlFor="fromAccountSelect" className="form-label">From Account</label>
               <select
+                id="fromAccountSelect"
                 className="form-input form-select"
                 value={fromAccountId}
                 onChange={(e) => setFromAccountId(e.target.value)}
@@ -110,17 +111,16 @@ export default function Transfer() {
                 <option value="">Select account</option>
                 {fromAccounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.account_number} - ${
-                      parseFloat(acc.balance).toFixed(2)
-                    }
+                    {acc.account_number} - ${parseFloat(acc.balance).toFixed(2)}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">To Account</label>
+              <label htmlFor="toAccountSelect" className="form-label">To Account</label>
               <select
+                id="toAccountSelect"
                 className="form-input form-select"
                 value={toAccountId}
                 onChange={(e) => setToAccountId(e.target.value)}
@@ -130,18 +130,20 @@ export default function Transfer() {
                 <option value="">Select recipient account</option>
                 {toAccounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.account_number}
+                    {acc.account_number} {acc.username ? `(${acc.username})` : ''}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Amount ($)</label>
+              <label htmlFor="transferAmountInput" className="form-label">Amount ($)</label>
               <input
+                id="transferAmountInput"
                 type="number"
                 className="form-input"
                 step="0.01"
+                min="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
@@ -151,8 +153,9 @@ export default function Transfer() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Description (optional)</label>
+              <label htmlFor="transferDescriptionInput" className="form-label">Description (optional)</label>
               <input
+                id="transferDescriptionInput"
                 type="text"
                 className="form-input"
                 value={description}
@@ -163,7 +166,12 @@ export default function Transfer() {
             </div>
 
             <div className="form-group">
-              <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={submitting}
+                aria-label="Execute fund transfer"
+              >
                 {submitting ? 'Processing...' : 'Transfer Funds'}
               </button>
             </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -9,6 +10,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  usePageTitle('Sign In');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,12 +39,17 @@ export default function Login() {
           <p className="auth-subtitle">Sign in to your account</p>
         </div>
 
-        {error && <div className="alert alert-danger">{error}</div>}
+        {error && (
+          <div className="alert alert-danger" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} aria-label="Sign In Form">
           <div className="form-group">
-            <label className="form-label">Username</label>
+            <label htmlFor="loginUsername" className="form-label">Username</label>
             <input
+              id="loginUsername"
               type="text"
               className="form-input"
               value={username}
@@ -49,12 +57,14 @@ export default function Login() {
               placeholder="Enter your username"
               disabled={loading}
               autoComplete="username"
+              required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label htmlFor="loginPassword" className="form-label">Password</label>
             <input
+              id="loginPassword"
               type="password"
               className="form-input"
               value={password}
@@ -62,6 +72,7 @@ export default function Login() {
               placeholder="Enter your password"
               disabled={loading}
               autoComplete="current-password"
+              required
             />
           </div>
 
@@ -70,6 +81,7 @@ export default function Login() {
               type="submit"
               className="btn btn-primary btn-block"
               disabled={loading}
+              aria-label="Sign in to your account"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
