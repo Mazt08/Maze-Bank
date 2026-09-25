@@ -15,8 +15,12 @@ export async function transferFunds(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  if (amount <= 0) {
-    return res.status(400).json({ error: 'Amount must be positive' });
+  if (isNaN(amount) || Number(amount) <= 0) {
+    return res.status(400).json({ error: 'Amount must be a positive number' });
+  }
+
+  if (Number(fromAccountId) === Number(toAccountId)) {
+    return res.status(400).json({ error: 'Sender and recipient accounts cannot be the same' });
   }
 
   const connection = await pool.getConnection();

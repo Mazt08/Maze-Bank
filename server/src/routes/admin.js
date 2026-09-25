@@ -7,6 +7,7 @@ import {
   updateAccountBalance,
   getSystemStats,
   createAccount,
+  getAdminLogs,
 } from '../controllers/adminController.js';
 import { sessionMiddleware } from '../middleware/sessionMiddleware.js';
 
@@ -22,5 +23,6 @@ router.get('/users/:userId', getUserDetails);
 router.put('/accounts/:accountId/balance', updateAccountBalance);
 router.post('/accounts', createAccount);
 router.get('/stats', getSystemStats);
+router.get('/logs', getAdminLogs);
 
 export default router;

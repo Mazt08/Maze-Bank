@@ -45,7 +45,7 @@ export async function getAllUsers(req, res) {
 export async function getAllAccounts(req, res) {
   try {
     const [rows] = await pool.query(
-      'SELECT a.id, a.user_id, a.account_number, a.balance, a.account_type, a.created_at, u.username FROM accounts a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC'
+      'SELECT a.id, a.user_id, a.account_number, a.balance, a.created_at, u.username FROM accounts a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC'
     );
 
     return res.json({
@@ -71,7 +71,7 @@ export async function getUserDetails(req, res) {
     }
 
     const [accountRows] = await pool.query(
-      'SELECT id, account_number, balance, account_type, created_at FROM accounts WHERE user_id = ?',
+      'SELECT id, account_number, balance, created_at FROM accounts WHERE user_id = ?',
       [userId]
     );
 
@@ -109,6 +109,16 @@ export async function updateAccountBalance(req, res) {
       return res.status(404).json({ error: 'Account not found' });
     }
 
+    // Audit trail: Log admin action
+    try {
+      await pool.query(
+        'INSERT INTO admin_log (admin_id, action, details) VALUES (?, ?, ?)',
+        [req.userId, 'update_balance', `Updated account ${accountId} balance to ${newBalance}`]
+      );
+    } catch (logErr) {
+      console.error('Failed to log admin action:', logErr);
+    }
+
     // Fetch the updated account
     const [updatedRows] = await pool.query(
       'SELECT * FROM accounts WHERE id = ?',
@@ -127,14 +137,10 @@ export async function updateAccountBalance(req, res) {
 
 export async function createAccount(req, res) {
   try {
-    const { userId, type } = req.body;
+    const { userId } = req.body;
 
-    if (!userId || !type) {
-      return res.status(400).json({ error: 'User ID and account type are required' });
-    }
-
-    if (!['checking', 'savings'].includes(type)) {
-      return res.status(400).json({ error: 'Invalid account type' });
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
 
     // Verify user exists
@@ -147,20 +153,28 @@ export async function createAccount(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // One account per user: reject instead of creating a duplicate.
+    // The UNIQUE(user_id) constraint in the schema also catches the race
+    // where two requests pass this check simultaneously.
+    const [existingRows] = await pool.query(
+      'SELECT id FROM accounts WHERE user_id = ?',
+      [userId]
+    );
+
+    if (existingRows.length > 0) {
+      return res.status(409).json({ error: 'User already has an account' });
+    }
+
     const username = userRows[0].username;
     const year = new Date().getFullYear();
 
-    // Generate unique account number: {prefix}-{year}-{USERNAME}
-    const [[{ maxPrefix }]] = await pool.query(
-      "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(account_number, '-', 1) AS UNSIGNED)), 1000) as maxPrefix FROM accounts"
-    );
-    const prefix = maxPrefix + 1;
-    const accountNumber = `${prefix}-${year}-${username.toUpperCase()}`;
+    // One consistent format: {year}-{USERNAME}
+    const accountNumber = `${year}-${username.toUpperCase()}`;
 
     // Create account with balance 0.00
     const [result] = await pool.query(
-      'INSERT INTO accounts (user_id, account_number, account_type, balance, created_at) VALUES (?, ?, ?, 0.00, NOW())',
-      [userId, accountNumber, type]
+      'INSERT INTO accounts (user_id, account_number, balance, created_at) VALUES (?, ?, 0.00, NOW())',
+      [userId, accountNumber]
     );
 
     return res.status(201).json({
@@ -169,12 +183,15 @@ export async function createAccount(req, res) {
         id: result.insertId,
         user_id: userId,
         account_number: accountNumber,
-        account_type: type,
         balance: '0.00',
         created_at: new Date().toISOString(),
       },
     });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      // Unique constraint on user_id - user already has an account
+      return res.status(409).json({ error: 'User already has an account' });
+    }
     console.error('Create account error:', err);
     return res.status(500).json({ error: 'Failed to create account' });
   }
@@ -198,5 +215,26 @@ export async function getSystemStats(req, res) {
   } catch (err) {
     console.error('System stats error:', err);
     return res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+}
+
+export async function getAdminLogs(req, res) {
+  try {
+    const [loginAttempts] = await pool.query(
+      'SELECT id, username, ip_address, attempted_at FROM login_attempts ORDER BY attempted_at DESC LIMIT 100'
+    );
+
+    const [adminLogs] = await pool.query(
+      'SELECT l.id, l.admin_id, u.username as admin_username, l.action, l.details, l.timestamp FROM admin_log l JOIN users u ON l.admin_id = u.id ORDER BY l.timestamp DESC LIMIT 100'
+    );
+
+    return res.json({
+      success: true,
+      login_attempts: loginAttempts,
+      admin_logs: adminLogs,
+    });
+  } catch (err) {
+    console.error('Get admin logs error:', err);
+    return res.status(500).json({ error: 'Failed to fetch admin logs' });
   }
 }

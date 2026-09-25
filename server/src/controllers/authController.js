@@ -33,17 +33,13 @@ export async function registerUser(req, res) {
     const userId = result.insertId;
     const year = new Date().getFullYear();
 
-    // AUTO-CREATE: Checking account with format {prefix}-{year}-{USERNAME}
-    const [[{ maxPrefix }]] = await pool.query(
-      "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(account_number, '-', 1) AS UNSIGNED)), 1000) as maxPrefix FROM accounts"
-    );
-    const prefix = maxPrefix + 1;
-    const upperUsername = username.toUpperCase();
-    const accountNumber = `${prefix}-${year}-${upperUsername}`;
+    // AUTO-CREATE: One account per user, balance 0.00, format {year}-{USERNAME}
+    // (unique on user_id, so a second account can never be created)
+    const accountNumber = `${year}-${username.toUpperCase()}`;
 
     await pool.query(
-      "INSERT INTO accounts (user_id, account_number, account_type, balance, created_at) VALUES (?, ?, ?, 0.00, NOW())",
-      [userId, accountNumber, "checking"],
+      "INSERT INTO accounts (user_id, account_number, balance, created_at) VALUES (?, ?, 0.00, NOW())",
+      [userId, accountNumber],
     );
 
     return res.status(201).json({
@@ -99,6 +95,17 @@ export async function loginUser(req, res) {
     const [rows] = await pool.query(query);
 
     if (!rows || rows.length === 0) {
+      // Audit trail: Log failed login attempt to login_attempts table
+      const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+      const cleanIp = typeof ip === 'string' ? ip.split(',')[0].trim() : '127.0.0.1';
+      try {
+        await pool.query(
+          'INSERT INTO login_attempts (username, ip_address, attempted_at) VALUES (?, ?, NOW())',
+          [username, cleanIp]
+        );
+      } catch (logErr) {
+        console.error('Failed to log login attempt:', logErr);
+      }
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
